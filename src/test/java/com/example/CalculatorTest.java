@@ -32,4 +32,9 @@ public class CalculatorTest {
     public void testDivideByZero() {
         calculator.divide(5, 0);
     }
+    @Test
+    public void testPower() {
+        assertEquals(8, calculator.power(2, 3));
+        assertEquals(1, calculator.power(5, 0));
+    }
 }
