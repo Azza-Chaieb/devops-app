@@ -15,7 +15,7 @@ pipeline {
             steps {
                 git branch: 'master',
                     url: 'https://github.com/Azza-Chaieb/devops-app.git'
-                sh 'echo "Code source récupéré avec succès"'
+                sh 'echo "Code source récupéré depuis GitHub"'
             }
         }
         
@@ -26,7 +26,7 @@ pipeline {
             }
             post {
                 success {
-                    echo '✅ Build Maven réussi!'
+                    echo 'Build Maven réussi!'
                     archiveArtifacts artifacts: 'target/*.war', fingerprint: true
                 }
             }
@@ -46,22 +46,13 @@ pipeline {
         stage('Déploiement Tomcat') {
             steps {
                 script {
-                    // Arrêter Tomcat
                     sh '''
                         set +e
                         /opt/tomcat/bin/shutdown.sh
                         sleep 5
-                    '''
-                    
-                    // Nettoyer et déployer
-                    sh '''
                         rm -rf /opt/tomcat/webapps/devops-app*
                         rm -rf /opt/tomcat/webapps/ROOT*
                         cp target/devops-app.war /opt/tomcat/webapps/ROOT.war
-                    '''
-                    
-                    // Redémarrer Tomcat
-                    sh '''
                         /opt/tomcat/bin/startup.sh
                         sleep 10
                     '''
@@ -69,30 +60,18 @@ pipeline {
             }
             post {
                 success {
-                    echo "✅ Application déployée sur ${TOMCAT_URL}"
+                    echo "Application déployée sur ${TOMCAT_URL}"
                 }
-            }
-        }
-        
-        stage('Test de Déploiement') {
-            steps {
-                sh '''
-                    echo "Test de l'application déployée..."
-                    curl -s http://localhost:8082/ || echo "Tomcat accessible"
-                '''
             }
         }
     }
     
     post {
         always {
-            echo "Pipeline ${currentBuild.result} - Voir détails: ${env.BUILD_URL}"
+            echo "Pipeline ${currentBuild.result}"
         }
         success {
-            echo '🎉 Pipeline exécutée avec succès!'
-        }
-        failure {
-            echo '❌ Pipeline a échoué!'
+            echo 'Pipeline exécutée avec succès!'
         }
     }
 }
