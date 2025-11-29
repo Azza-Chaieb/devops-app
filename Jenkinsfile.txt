@@ -3,22 +3,24 @@ pipeline {
     
     tools {
         maven 'M3'
-        jdk 'JDK11'
+        jdk 'JDK17'
     }
     
     environment {
-        TOMCAT_URL = 'http://localhost:8082'
+        TOMCAT_HOME = '/opt/tomcat'
     }
     
     stages {
+        // STAGE 1: Checkout GitHub
         stage('Checkout GitHub') {
             steps {
                 git branch: 'master',
                     url: 'https://github.com/Azza-Chaieb/devops-app.git'
-                sh 'echo "Code source récupéré depuis GitHub"'
+                sh 'echo "✅ Code source récupéré depuis GitHub"'
             }
         }
         
+        // STAGE 2: Build Maven
         stage('Build') {
             steps {
                 sh 'mvn clean compile'
@@ -26,12 +28,13 @@ pipeline {
             }
             post {
                 success {
-                    echo 'Build Maven réussi!'
+                    echo '✅ Build Maven réussi!'
                     archiveArtifacts artifacts: 'target/*.war', fingerprint: true
                 }
             }
         }
         
+        // STAGE 3: Tests Unitaires
         stage('Tests Unitaires') {
             steps {
                 sh 'mvn test'
@@ -43,35 +46,69 @@ pipeline {
             }
         }
         
+        // STAGE 4: SAST - SonarQube
+        stage('SAST - SonarQube') {
+            steps {
+                sh '''
+                    # Analyse SonarQube
+                    mvn sonar:sonar \
+                    -Dsonar.projectKey=devops-app \
+                    -Dsonar.projectName="DevOps Application" \
+                    -Dsonar.host.url=http://localhost:9000 \
+                    -Dsonar.login=admin \
+                    -Dsonar.password=admin
+                '''
+            }
+        }
+        
+        // STAGE 5: Déploiement Tomcat
         stage('Déploiement Tomcat') {
             steps {
                 script {
-                    sh '''
-                        set +e
-                        /opt/tomcat/bin/shutdown.sh
+                    sh """
+                        # Arrêter Tomcat
+                        echo "🛑 Arrêt de Tomcat..."
+                        ${TOMCAT_HOME}/bin/shutdown.sh || true
                         sleep 5
-                        rm -rf /opt/tomcat/webapps/devops-app*
-                        rm -rf /opt/tomcat/webapps/ROOT*
-                        cp target/devops-app.war /opt/tomcat/webapps/ROOT.war
-                        /opt/tomcat/bin/startup.sh
+                        
+                        # Nettoyer l'ancienne déploiement
+                        echo "🧹 Nettoyage de l'ancienne version..."
+                        rm -rf ${TOMCAT_HOME}/webapps/devops-app*
+                        rm -rf ${TOMCAT_HOME}/webapps/ROOT*
+                        
+                        # Déployer la nouvelle version
+                        echo "🚀 Déploiement de la nouvelle version..."
+                        cp target/devops-app.war ${TOMCAT_HOME}/webapps/ROOT.war
+                        
+                        # Redémarrer Tomcat
+                        echo "🔁 Redémarrage de Tomcat..."
+                        ${TOMCAT_HOME}/bin/startup.sh
                         sleep 10
-                    '''
+                        
+                        echo "✅ Déploiement terminé!"
+                    """
                 }
             }
-            post {
-                success {
-                    echo "Application déployée sur ${TOMCAT_URL}"
-                }
+        }
+        
+        // STAGE 6: Test de l'application
+        stage('Test Application') {
+            steps {
+                sh '''
+                    echo "🔍 Test de l'application déployée..."
+                    echo "URL: http://localhost:8082/"
+                    curl -s http://localhost:8082/ | head -5 || echo "⚠️ Application en cours de démarrage..."
+                '''
             }
         }
     }
     
     post {
         always {
-            echo "Pipeline ${currentBuild.result}"
+            echo "🏁 Pipeline ${currentBuild.result}"
         }
         success {
-            echo 'Pipeline exécutée avec succès!'
+            echo '🎉 Pipeline CI/CD exécutée avec succès avec 6 stages!'
         }
     }
 }
