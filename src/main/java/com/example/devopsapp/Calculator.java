@@ -23,4 +23,8 @@ public class Calculator {
     public int power(int base, int exponent) {
         return (int) Math.pow(base, exponent);
     }
+    public int modulo(int a, int b) {
+        if (b == 0) throw new IllegalArgumentException("Division by zero");
+        return a % b;
+    }
 }

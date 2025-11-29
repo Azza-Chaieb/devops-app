@@ -37,4 +37,14 @@ public class CalculatorTest {
         assertEquals(8, calculator.power(2, 3));
         assertEquals(1, calculator.power(5, 0));
     }
+    @Test
+    public void testModulo() {
+        assertEquals(1, calculator.modulo(5, 2));
+        assertEquals(0, calculator.modulo(4, 2));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testModuloByZero() {
+        calculator.modulo(5, 0);
+    }
 }
